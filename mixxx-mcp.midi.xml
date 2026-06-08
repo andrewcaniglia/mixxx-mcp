@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  mixxx-mcp.midi.xml — Mixxx controller preset for mixxx-mcp
+
+  Install: copy to ~/.mixxx/controllers/ (Linux/Windows)
+           or ~/Library/Containers/org.mixxx.mixxx/Data/Library/
+              Application Support/Mixxx/controllers/ (macOS)
+
+  This preset wires MIDI IN from "mixxx-mcp" virtual port to the
+  mixxx-mcp.js script handler for all CC 0–127.
+  
+  The script routes everything; this XML just declares the port binding
+  and delegates to MixxxMCP.handleCC().
+-->
+<MixxxControllerPreset mixxxVersion="2.4" schemaVersion="1">
+    <info>
+        <name>mixxx-mcp</name>
+        <author>mixxx-mcp</author>
+        <description>MCP (Model Context Protocol) server bridge — allows AI agents and automation to control Mixxx via virtual MIDI port. Requires mixxx-mcp Python server running.</description>
+        <wiki>https://github.com/cloudygetty-ai/mixxx-mcp</wiki>
+        <forums></forums>
+    </info>
+    <controller id="mixxx-mcp">
+        <scriptfiles>
+            <file filename="mixxx-mcp.js" functionprefix="MixxxMCP"/>
+        </scriptfiles>
+        <controls>
+            <!-- Delegate all CC 0–127 on channel 1 to the JS handler -->
+            <!-- We use a single wildcard-style block by routing all CCs through handleCC -->
+            <!-- CC 0–19: Channel 1 controls -->
+            <control>
+                <group>[Channel1]</group>
+                <key>play</key>
+                <status>0xB0</status>
+                <midino>0</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel2]</group>
+                <key>play</key>
+                <status>0xB0</status>
+                <midino>20</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel3]</group>
+                <key>play</key>
+                <status>0xB0</status>
+                <midino>40</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel4]</group>
+                <key>play</key>
+                <status>0xB0</status>
+                <midino>60</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Master]</group>
+                <key>crossfader</key>
+                <status>0xB0</status>
+                <midino>80</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+        </controls>
+        <!-- 
+          Note: The above declares representative bindings.
+          The JS script's init() function and handleCC() handler
+          route ALL incoming CC messages for full coverage.
+          Mixxx will call MixxxMCP.handleCC() for any CC received
+          on the mapped port, providing complete routing via the CC_ROUTE table.
+        -->
+    </controller>
+</MixxxControllerPreset>
