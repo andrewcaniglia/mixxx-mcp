@@ -1,14 +1,14 @@
 # mixxx-mcp
 
 MCP (Model Context Protocol) server for [Mixxx](https://mixxx.org) DJ Software.
-Lets AI agents (Claude, Claude Code, etc.) control Mixxx in real time — transport, mixing, EQ, loops, hotcues, effects.
+Lets AI agents (Codex, Claude, Claude Code, etc.) control Mixxx in real time — transport, mixing, EQ, loops, hotcues, effects.
 
 ---
 
 ## Architecture
 
 ```
-AI Agent (Claude)
+AI Agent (Codex / Claude)
       │
       ▼ MCP tools
 mixxx-mcp Python Server
@@ -34,10 +34,16 @@ mixxx-mcp Python Server
 
 ### 1. Install Python server
 
+Create a local virtual environment first. This avoids Homebrew Python's
+`externally-managed-environment` error on macOS and keeps dependencies scoped
+to this repo.
+
 ```bash
-pip install -e ".[dev]"
-# or without dev deps:
-pip install mcp python-osc python-rtmidi
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
+
+# Optional, for running tests/development tooling:
+.venv/bin/python -m pip install -e ".[dev]"
 ```
 
 ### 2. Install Mixxx controller script
@@ -46,6 +52,10 @@ Copy both files to your Mixxx controllers directory:
 
 ```bash
 # macOS
+cp mixxx-mcp.js mixxx-mcp.midi.xml \
+  ~/Library/Containers/Mixxx/Data/Library/Application\ Support/Mixxx/controllers/
+
+# macOS alternate container name used by some installs
 cp mixxx-mcp.js mixxx-mcp.midi.xml \
   ~/Library/Containers/org.mixxx.mixxx/Data/Library/Application\ Support/Mixxx/controllers/
 
@@ -56,26 +66,66 @@ cp mixxx-mcp.js mixxx-mcp.midi.xml ~/.mixxx/controllers/
 cp mixxx-mcp.js mixxx-mcp.midi.xml %LOCALAPPDATA%\Mixxx\controllers\
 ```
 
-### 3. Enable in Mixxx
+If you already have a custom controller mapping such as:
 
-1. Open **Mixxx → Preferences → Controllers**
-2. Select **mixxx-mcp** from the device list
-3. Check **Enable**
-4. Click **OK**
+```text
+~/Library/Containers/Mixxx/Data/Library/Application Support/Mixxx/controllers/Hercules DJControl Inpulse 200 custom3.midi.xml
+```
+
+then `~/Library/Containers/Mixxx/Data/Library/Application Support/Mixxx/controllers/` is the folder to copy `mixxx-mcp.js` and `mixxx-mcp.midi.xml` into. You do not need to overwrite your Hercules mapping.
+
+### 3. Run the MCP server
+
+Start the server before opening Mixxx's controller preferences. On macOS/Linux,
+`python-rtmidi` creates the `mixxx-mcp` virtual MIDI port when the server starts,
+and Mixxx only shows MIDI devices that currently exist.
+
+```bash
+# stdio mode (Codex / Claude Desktop / claude-code)
+.venv/bin/python main.py
+
+# HTTP mode (remote / multi-client)
+.venv/bin/python main.py --http --port 8080
+```
+
+If `.venv/bin/python main.py` fails with missing packages, install the server dependencies
+with the same Python interpreter:
+
+```bash
+.venv/bin/python -m pip install -e .
+```
 
 > **Note (Windows):** Virtual MIDI ports require [loopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html). Create a port named `mixxx-mcp` before starting the server.
 
-### 4. Run the MCP server
+### 4. Enable in Mixxx
+
+1. Keep the Python server running.
+2. Open **Mixxx → Preferences → Controllers**.
+3. Select **mixxx-mcp** from the device list.
+4. Check **Enable**.
+5. Click **OK**.
+
+If `mixxx-mcp` does not appear, restart Mixxx or reopen **Preferences → Controllers** while `.venv/bin/python main.py` is still running.
+
+### 5. Configure Codex
+
+Codex supports MCP servers in the CLI and IDE extension. Add this server to Codex with the CLI:
 
 ```bash
-# stdio mode (Claude Desktop / claude-code)
-python main.py
-
-# HTTP mode (remote / multi-client)
-python main.py --http --port 8080
+codex mcp add mixxx -- /path/to/mixxx-mcp/.venv/bin/python /path/to/mixxx-mcp/main.py
 ```
 
-### 5. Configure Claude Desktop
+Or edit `~/.codex/config.toml` directly:
+
+```toml
+[mcp_servers.mixxx]
+command = "/path/to/mixxx-mcp/.venv/bin/python"
+args = ["/path/to/mixxx-mcp/main.py"]
+```
+
+For a repo-scoped setup, put the same block in `.codex/config.toml` inside a trusted project. In Codex, use `/mcp` to confirm the `mixxx` server is active.
+
+### 6. Configure Claude Desktop
 
 Add to `claude_desktop_config.json`:
 
@@ -83,7 +133,7 @@ Add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "mixxx": {
-      "command": "python",
+      "command": "/path/to/mixxx-mcp/.venv/bin/python",
       "args": ["/path/to/mixxx-mcp/main.py"],
       "env": {}
     }
