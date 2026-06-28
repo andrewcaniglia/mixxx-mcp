@@ -7,13 +7,15 @@ Integration layers:
 """
 
 import logging
-from typing import Optional
+import threading
+from typing import Optional, Any
 
 from mcp.server.fastmcp import FastMCP
 from .midi_bridge import MidiBridge
 from .osc_listener import OscStateStore
 from .state_server import StateServer
 from .controls import CONTROL_MAP, MIDI_CC_MAP, validate_group, resolve_channel
+from .queue_manager import DeckQueue
 
 logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s %(message)s")
 log = logging.getLogger("mixxx-mcp")
@@ -21,12 +23,15 @@ log = logging.getLogger("mixxx-mcp")
 midi  = MidiBridge()
 state = OscStateStore()
 srv   = StateServer(state)
+deck_queue = DeckQueue(midi, state)
 
 mcp = FastMCP(
     name="mixxx-mcp",
     instructions=(
         "Control and monitor Mixxx DJ Software. "
-        "Supports deck transport, mixing, EQ, effects, loops, hotcues, and library."
+        "Supports deck transport, mixing, EQ, effects, loops, hotcues, library loading, "
+        "and a two-deck song request queue. Track names in the queue are request metadata; "
+        "load audio by highlighting the matching Mixxx library row and calling prepare_next_selected."
     ),
 )
 
@@ -127,6 +132,33 @@ def set_rate(deck: int, value: float) -> dict:
     return {"ok": True, "deck": deck, "rate": value}
 
 
+@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": True})
+def set_pitch_up(deck: int, percent: float) -> dict:
+    """Set tempo as pitch-up percentage. deck: 1-4, percent: -100 to 100. Example: 8 = +8%."""
+    rate = percent / 100.0
+    if not -1.0 <= rate <= 1.0:
+        return {"ok": False, "error": "percent must be -100 to 100"}
+    midi.send_control(resolve_channel(deck), "rate", rate)
+    return {"ok": True, "deck": deck, "pitch_up_percent": percent, "rate": rate}
+
+
+@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": True})
+def set_target_bpm(deck: int, bpm: float) -> dict:
+    """Set deck tempo so the loaded track plays at target BPM, using current deck BPM state."""
+    current_bpm = state.get(resolve_channel(deck), "bpm")
+    try:
+        current = float(current_bpm)
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "current BPM is not available from Mixxx yet"}
+    if current <= 0:
+        return {"ok": False, "error": "current BPM must be greater than zero"}
+    rate = (bpm / current) - 1.0
+    if not -1.0 <= rate <= 1.0:
+        return {"ok": False, "error": "target BPM requires a rate outside -1.0 to 1.0", "rate": rate}
+    midi.send_control(resolve_channel(deck), "rate", rate)
+    return {"ok": True, "deck": deck, "target_bpm": bpm, "source_bpm": current, "rate": rate}
+
+
 @mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": False})
 def nudge_tempo(deck: int, direction: str, size: str = "small") -> dict:
     """Nudge tempo. deck: 1–4, direction: 'up'/'down', size: 'small'/'large'."""
@@ -215,6 +247,99 @@ def beatjump(deck: int, beats: float) -> dict:
     midi.send_control(group, "beatjump_size", abs(beats))
     midi.send_control(group, "beatjump_forward" if beats > 0 else "beatjump_backward", 1.0)
     return {"ok": True, "deck": deck, "beatjump": beats}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LIBRARY LOADING / REQUEST QUEUE
+# ══════════════════════════════════════════════════════════════════════════════
+
+@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": False})
+def load_selected_track(deck: int, play_now: bool = False, target_bpm: Optional[float] = None,
+                        pitch_up_percent: Optional[float] = None, rate: Optional[float] = None) -> dict:
+    """
+    Load Mixxx's currently highlighted library track into a deck.
+    Optionally starts playback and sets tempo by target_bpm, pitch_up_percent, or raw rate.
+    """
+    group = resolve_channel(deck)
+    key = "LoadSelectedTrackAndPlay" if play_now else "LoadSelectedTrack"
+    midi.send_control(group, key, 1.0)
+
+    item = {
+        "target_bpm": target_bpm,
+        "pitch_up_percent": pitch_up_percent,
+        "rate": rate,
+    }
+    tempo = deck_queue.apply_tempo(deck, item)
+    threading.Timer(1.0, lambda: deck_queue.apply_tempo(deck, item)).start()
+    return {"ok": True, "deck": deck, "play_now": play_now, "tempo": tempo}
+
+
+@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": False})
+def enqueue_songs(songs: list[Any]) -> dict:
+    """
+    Add requested songs to the queue.
+    Each item may be a string or an object with song/title, artist, target_bpm/bpm, pitch_up_percent, or rate.
+    """
+    try:
+        items = deck_queue.enqueue(songs)
+        deck_queue.start()
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
+    return {
+        "ok": True,
+        "queued": items,
+        "note": (
+            "Song names are tracked as requests. To load audio, highlight the matching "
+            "track in Mixxx's library and call prepare_next_selected()."
+        ),
+    }
+
+
+@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": False})
+def request_song(song: str, artist: Optional[str] = None, target_bpm: Optional[float] = None,
+                 pitch_up_percent: Optional[float] = None, rate: Optional[float] = None) -> dict:
+    """Conversational shortcut to add one requested song to the queue."""
+    item = {
+        "song": song,
+        "artist": artist,
+        "target_bpm": target_bpm,
+        "pitch_up_percent": pitch_up_percent,
+        "rate": rate,
+    }
+    return enqueue_songs([item])
+
+
+@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": False})
+def prepare_next_selected(deck: Optional[int] = None) -> dict:
+    """
+    Load the currently highlighted Mixxx library track for the next queued request.
+    If deck is omitted, an idle queue deck (1 or 2) is selected.
+    """
+    deck_queue.start()
+    return deck_queue.prepare_next_selected(deck)
+
+
+@mcp.tool(annotations={"readOnlyHint": True, "idempotentHint": True})
+def get_song_queue() -> dict:
+    """Read queued, prepared, playing, and completed song requests."""
+    return {"ok": True, "queue": deck_queue.snapshot()}
+
+
+@mcp.tool(annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": True})
+def clear_song_queue() -> dict:
+    """Clear all queued song requests."""
+    count = deck_queue.clear()
+    return {"ok": True, "cleared": count}
+
+
+@mcp.tool(annotations={"readOnlyHint": False, "idempotentHint": True})
+def set_queue_monitor(enabled: bool) -> dict:
+    """Enable or disable automatic handoff between queue decks 1 and 2."""
+    if enabled:
+        deck_queue.start()
+    else:
+        deck_queue.stop()
+    return {"ok": True, "queue_monitor": enabled}
 
 
 # ══════════════════════════════════════════════════════════════════════════════

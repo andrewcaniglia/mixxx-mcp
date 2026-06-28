@@ -116,6 +116,16 @@ MIDI_CC_MAP: Dict[Tuple[str, str], Tuple[int, str]] = {
     ("*", "beatjump_size"):             (114, "raw"),
     ("*", "beatjump_forward"):          (115, "binary"),
     ("*", "beatjump_backward"):         (116, "binary"),
+
+    # ── Library/deck loading ──────────────────────────────────────────────
+    ("[Channel1]", "LoadSelectedTrack"): (117, "binary"),
+    ("[Channel2]", "LoadSelectedTrack"): (118, "binary"),
+    ("[Channel3]", "LoadSelectedTrack"): (119, "binary"),
+    ("[Channel4]", "LoadSelectedTrack"): (120, "binary"),
+    ("[Channel1]", "LoadSelectedTrackAndPlay"): (121, "binary"),
+    ("[Channel2]", "LoadSelectedTrackAndPlay"): (122, "binary"),
+    ("[Channel3]", "LoadSelectedTrackAndPlay"): (123, "binary"),
+    ("[Channel4]", "LoadSelectedTrackAndPlay"): (124, "binary"),
 }
 
 # ── Hotcue slots 3–8 (auto-generated) ────────────────────────────────────────
@@ -188,6 +198,8 @@ CONTROL_MAP = {
         "duration":          "Read-only. Track duration in seconds.",
         "track_artist":      "Read-only. Loaded track artist.",
         "track_title":       "Read-only. Loaded track title.",
+        "LoadSelectedTrack": "Binary. Load the highlighted library track into this deck.",
+        "LoadSelectedTrackAndPlay": "Binary. Load the highlighted library track and start playback.",
     },
     "[Master]": {
         "crossfader":  "-1.0–1.0. Crossfader position.",

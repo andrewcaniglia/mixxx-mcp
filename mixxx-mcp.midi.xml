@@ -30,7 +30,7 @@
             <!-- CC 0–19: Channel 1 controls -->
             <control>
                 <group>[Channel1]</group>
-                <key>play</key>
+                <key>handleCC</key>
                 <status>0xB0</status>
                 <midino>0</midino>
                 <options>
@@ -39,7 +39,7 @@
             </control>
             <control>
                 <group>[Channel2]</group>
-                <key>play</key>
+                <key>handleCC</key>
                 <status>0xB0</status>
                 <midino>20</midino>
                 <options>
@@ -48,7 +48,7 @@
             </control>
             <control>
                 <group>[Channel3]</group>
-                <key>play</key>
+                <key>handleCC</key>
                 <status>0xB0</status>
                 <midino>40</midino>
                 <options>
@@ -57,7 +57,7 @@
             </control>
             <control>
                 <group>[Channel4]</group>
-                <key>play</key>
+                <key>handleCC</key>
                 <status>0xB0</status>
                 <midino>60</midino>
                 <options>
@@ -66,9 +66,81 @@
             </control>
             <control>
                 <group>[Master]</group>
-                <key>crossfader</key>
+                <key>handleCC</key>
                 <status>0xB0</status>
                 <midino>80</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel1]</group>
+                <key>handleCC</key>
+                <status>0xB0</status>
+                <midino>117</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel2]</group>
+                <key>handleCC</key>
+                <status>0xB0</status>
+                <midino>118</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel3]</group>
+                <key>handleCC</key>
+                <status>0xB0</status>
+                <midino>119</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel4]</group>
+                <key>handleCC</key>
+                <status>0xB0</status>
+                <midino>120</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel1]</group>
+                <key>handleCC</key>
+                <status>0xB0</status>
+                <midino>121</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel2]</group>
+                <key>handleCC</key>
+                <status>0xB0</status>
+                <midino>122</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel3]</group>
+                <key>handleCC</key>
+                <status>0xB0</status>
+                <midino>123</midino>
+                <options>
+                    <script-binding/>
+                </options>
+            </control>
+            <control>
+                <group>[Channel4]</group>
+                <key>handleCC</key>
+                <status>0xB0</status>
+                <midino>124</midino>
                 <options>
                     <script-binding/>
                 </options>

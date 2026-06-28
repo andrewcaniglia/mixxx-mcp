@@ -106,6 +106,8 @@ Add to `claude_desktop_config.json`:
 | `set_eq(deck, low, mid, high)` | EQ bands 0.0–4.0 |
 | `set_pregain(deck, value)` | Trim 0.0–4.0 |
 | `set_rate(deck, value)` | Tempo pitch -1.0–1.0 |
+| `set_pitch_up(deck, percent)` | Tempo as pitch-up percent |
+| `set_target_bpm(deck, bpm)` | Set tempo from current deck BPM to target BPM |
 | `nudge_tempo(deck, direction, size)` | Tempo nudge up/down |
 | `set_loop(deck, beats)` | Activate beat loop |
 | `exit_loop(deck)` | Deactivate loop |
@@ -114,12 +116,41 @@ Add to `claude_desktop_config.json`:
 | `goto_hotcue(deck, slot)` | Jump to hotcue |
 | `clear_hotcue(deck, slot)` | Delete hotcue |
 | `beatjump(deck, beats)` | Jump ±N beats |
+| `load_selected_track(deck, play_now, target_bpm, pitch_up_percent, rate)` | Load highlighted Mixxx library track |
+| `enqueue_songs(songs)` | Add conversational song requests to the queue |
+| `request_song(song, artist, target_bpm, pitch_up_percent, rate)` | Add one song request |
+| `prepare_next_selected(deck)` | Prepare highlighted library track for next queued request |
+| `get_song_queue()` / `clear_song_queue()` | Inspect or clear the request queue |
+| `set_queue_monitor(enabled)` | Toggle automatic deck handoff |
 | `get_deck_state(deck)` | Read live deck state |
 | `get_mixer_state()` | Read master mixer state |
 | `get_all_state()` | Full OSC state dump |
 | `send_control(group, key, value)` | Raw control escape hatch |
 | `toggle_effect(unit, effect, enabled)` | Effect on/off |
 | `set_effect_mix(unit, value)` | Effect wet/dry |
+
+### Song Request Queue
+
+The queue tools automate a two-deck handoff on decks 1 and 2:
+
+1. Add requests with `enqueue_songs([...])` or `request_song(...)`.
+2. Highlight the matching track in Mixxx's library.
+3. Call `prepare_next_selected()` to load that highlighted track into an idle queue deck.
+4. The queue monitor starts the prepared opposite deck after the active deck reaches the end.
+
+Tempo can be specified per request:
+
+```json
+{
+  "song": "Example Track",
+  "artist": "Example Artist",
+  "target_bpm": 128
+}
+```
+
+Use `pitch_up_percent` instead of `target_bpm` when you want a fixed pitch/tempo change such as `4` for +4%.
+
+Mixxx's controller API exposes `LoadSelectedTrack`, not a string/file-path track load command. For that reason, song names in the MCP queue are request metadata for the agent conversation; actual audio loading uses the track currently highlighted in Mixxx.
 
 ---
 

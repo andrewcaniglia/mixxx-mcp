@@ -110,6 +110,15 @@ const CC_ROUTE = {
     114: { group: null, key: "beatjump_size",        scale: "raw",    deckRelative: true },
     115: { group: null, key: "beatjump_forward",     scale: "binary", deckRelative: true },
     116: { group: null, key: "beatjump_backward",    scale: "binary", deckRelative: true },
+    // Library/deck loading
+    117: { group: "[Channel1]", key: "LoadSelectedTrack",        scale: "binary" },
+    118: { group: "[Channel2]", key: "LoadSelectedTrack",        scale: "binary" },
+    119: { group: "[Channel3]", key: "LoadSelectedTrack",        scale: "binary" },
+    120: { group: "[Channel4]", key: "LoadSelectedTrack",        scale: "binary" },
+    121: { group: "[Channel1]", key: "LoadSelectedTrackAndPlay", scale: "binary" },
+    122: { group: "[Channel2]", key: "LoadSelectedTrackAndPlay", scale: "binary" },
+    123: { group: "[Channel3]", key: "LoadSelectedTrackAndPlay", scale: "binary" },
+    124: { group: "[Channel4]", key: "LoadSelectedTrackAndPlay", scale: "binary" },
 };
 
 // Hotcue slots 3–8 for channels 1–2
@@ -189,6 +198,7 @@ const TRIGGER_KEYS = new Set([
     "cue_default","beatloop_activate","reloop_toggle",
     "loop_halve","loop_double","beatjump_forward","beatjump_backward",
     "rate_perm_up_small","rate_perm_down_small","rate_perm_up","rate_perm_down",
+    "LoadSelectedTrack","LoadSelectedTrackAndPlay",
 ]);
 
 // ── Main controller object ────────────────────────────────────────────────
