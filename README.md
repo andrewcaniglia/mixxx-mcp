@@ -66,14 +66,6 @@ cp mixxx-mcp.js mixxx-mcp.midi.xml ~/.mixxx/controllers/
 cp mixxx-mcp.js mixxx-mcp.midi.xml %LOCALAPPDATA%\Mixxx\controllers\
 ```
 
-If you already have a custom controller mapping such as:
-
-```text
-~/Library/Containers/Mixxx/Data/Library/Application Support/Mixxx/controllers/Hercules DJControl Inpulse 200 custom3.midi.xml
-```
-
-then `~/Library/Containers/Mixxx/Data/Library/Application Support/Mixxx/controllers/` is the folder to copy `mixxx-mcp.js` and `mixxx-mcp.midi.xml` into. You do not need to overwrite your Hercules mapping.
-
 ### 3. Run the MCP server
 
 Start the server before opening Mixxx's controller preferences. On macOS/Linux,
